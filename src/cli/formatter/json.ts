@@ -1,4 +1,4 @@
-import { SearchResult, ErrorResult } from '../types.js';
+import { SearchResult, ErrorResult } from '../../shared/types.js';
 
 /**
  * Serialize a successful search result to a JSON string.
@@ -28,7 +28,7 @@ export function formatJson(result: SearchResult): string {
         community_size: pkg.scores.communitySize,
         issue_health: pkg.scores.issueHealth,
         reddit_buzz: pkg.scores.redditBuzz,
-        reddit_sentiment: pkg.scores.redditSentiment,
+        state_of_js: pkg.scores.stateOfJs,
         freshness: pkg.scores.freshness,
       },
       npm: {
@@ -53,6 +53,9 @@ export function formatJson(result: SearchResult): string {
         total_posts: pkg.reddit.totalPosts,
         total_score: pkg.reddit.totalScore,
         high_quality_posts: pkg.reddit.highQualityPosts,
+        relevant_posts: pkg.reddit.relevantPosts,
+        total_fetched: pkg.reddit.totalFetched,
+        queries_used: pkg.reddit.queriesUsed,
         subreddits: pkg.reddit.subreddits,
         sentiment: pkg.reddit.sentiment,
         sentiment_score: pkg.reddit.sentimentScore,

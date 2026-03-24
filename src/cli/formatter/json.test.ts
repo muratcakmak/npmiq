@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { formatJson, formatJsonError } from './json.js';
-import { SearchResult } from '../types.js';
+import { SearchResult } from '../../shared/types.js';
 
 function makeResult(): SearchResult {
   return {

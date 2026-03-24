@@ -1,10 +1,10 @@
 import type { Ora } from 'ora';
-import { SearchOptions, Config, SearchResult, ApiError, ConfigError, ProgressEvent } from '../types.js';
+import { SearchOptions, Config, SearchResult, ApiError, ConfigError, ProgressEvent } from '../../shared/types.js';
 import { SearchOrchestrator } from '../orchestrator.js';
-import { Scorer } from '../scorer.js';
+import { Scorer } from '../../shared/scorer.js';
 import { TerminalFormatter } from '../formatter/terminal.js';
 import { formatJson, formatJsonError } from '../formatter/json.js';
-import { cache } from '../cache.js';
+import { cache } from '../../shared/cache.js';
 
 export async function searchCommand(
   query: string,

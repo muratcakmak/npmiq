@@ -1,15 +1,15 @@
 import { Command } from 'commander';
 import { createRequire } from 'module';
-import { loadConfig, loadConfigFromFile } from './config.js';
+import { loadConfig, loadConfigFromFile } from '../shared/config.js';
 import { searchCommand } from './commands/search.js';
-import { SearchOptions, ConfigError } from './types.js';
+import { SearchOptions, ConfigError } from '../shared/types.js';
 
 const require = createRequire(import.meta.url);
 
 // Load version from package.json
 let version = '1.0.0';
 try {
-  const pkg = require('../package.json') as { version: string };
+  const pkg = require('../../package.json') as { version: string };
   version = pkg.version;
 } catch {
   // fallback to hardcoded version

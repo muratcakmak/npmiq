@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import Table from 'cli-table3';
 import type { Ora } from 'ora';
-import { SearchResult, PackageResult, SearchOptions } from '../types.js';
+import { SearchResult, PackageResult, SearchOptions } from '../../shared/types.js';
 
 // Lazily import ora (ESM dynamic import needed for CJS compat)
 let oraModule: typeof import('ora') | null = null;
@@ -128,9 +128,14 @@ export class TerminalFormatter {
         mixed: '🤔',
       }[pkg.reddit.sentiment ?? 'neutral'] ?? '😐';
 
+      const queryNote = pkg.reddit.queriesUsed > 1
+        ? chalk.dim(` (${pkg.reddit.queriesUsed} queries, ${pkg.reddit.relevantPosts}/${pkg.reddit.totalFetched} relevant)`)
+        : chalk.dim(` (${pkg.reddit.relevantPosts} relevant)`);
+
       process.stdout.write(
         `     ` +
         chalk.magenta(`Reddit: ${pkg.reddit.totalPosts} posts · ${formatNum(pkg.reddit.totalScore)} upvotes`) +
+        queryNote +
         (pkg.reddit.sentiment
           ? chalk.dim(` · Sentiment: `) + `${sentimentEmoji} ` + capitalize(pkg.reddit.sentiment)
           : '') +
@@ -175,13 +180,13 @@ export class TerminalFormatter {
 
     const scoreRows: Array<[string, number | null, string]> = [
       ['Weekly Downloads', pkg.scores.popularity, '25%'],
-      ['Commit Activity', pkg.scores.activity, '15%'],
-      ['Reddit Buzz', pkg.scores.redditBuzz, '15%'],
+      ['Commit Activity', pkg.scores.activity, '20%'],
+      ['State of JS', pkg.scores.stateOfJs, '15%'],
       ['GitHub Stars', pkg.scores.stars, '10%'],
-      ['Contributors', pkg.scores.communitySize, '10%'],
-      ['Issue Health', pkg.scores.issueHealth, '10%'],
       ['Freshness', pkg.scores.freshness, '10%'],
-      ['Reddit Sentiment', pkg.scores.redditSentiment, '5%'],
+      ['Issue Health', pkg.scores.issueHealth, '8%'],
+      ['Reddit Buzz', pkg.scores.redditBuzz, '7%'],
+      ['Contributors', pkg.scores.communitySize, '5%'],
     ];
 
     for (const [label, score, weight] of scoreRows) {

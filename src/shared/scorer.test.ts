@@ -20,7 +20,6 @@ describe('safeLog', () => {
 
 describe('sigmoidDecay', () => {
   it('returns > 50 for 0 days since push (before midpoint)', () => {
-    // At day 0, lambda=0.01, midpoint=30: 100/(1+e^(0.01*(0-30))) ≈ 57.4
     expect(sigmoidDecay(0)).toBeGreaterThan(50);
   });
 
@@ -89,12 +88,16 @@ function makePackage(overrides?: Partial<PackageRawData['npm']>): PackageRawData
       highQualityPosts: 5,
       topTitles: [],
       subreddits: {},
+      relevantPosts: 8,   // 8 of 10 posts mention the package name
+      totalFetched: 10,
+      queriesUsed: 1,
     },
     sentiment: {
       sentiment: 'positive',
       score: 0.7,
       summary: 'Generally well-regarded',
     },
+    stateOfJsRetention: 75, // B-tier retention
   };
 }
 
@@ -140,6 +143,13 @@ describe('Scorer', () => {
     expect(results[0]!.compositeScore).toBeGreaterThanOrEqual(0);
   });
 
+  it('handles missing stateOfJsRetention gracefully', () => {
+    const pkg: PackageRawData = { ...makePackage(), stateOfJsRetention: null };
+    const results = scorer.score([pkg]);
+    expect(results).toHaveLength(1);
+    expect(isNaN(results[0]!.compositeScore)).toBe(false);
+  });
+
   it('archives packages score lower on activity and freshness', () => {
     const active = makePackage({ name: 'active' });
     const archived: PackageRawData = {
@@ -150,6 +160,49 @@ describe('Scorer', () => {
     const activeResult = results.find((r) => r.name === 'active')!;
     const archivedResult = results.find((r) => r.name === 'archived')!;
     expect(activeResult.compositeScore).toBeGreaterThan(archivedResult.compositeScore);
+  });
+
+  it('zero commits scores lower than active package', () => {
+    const active = makePackage({ name: 'active' });
+    const stale: PackageRawData = {
+      ...makePackage({ name: 'stale' }),
+      github: { ...active.github!, commitsLast90d: 0 },
+    };
+    const results = scorer.score([active, stale]);
+    const activeResult = results.find((r) => r.name === 'active')!;
+    const staleResult = results.find((r) => r.name === 'stale')!;
+    expect(activeResult.compositeScore).toBeGreaterThan(staleResult.compositeScore);
+  });
+
+  it('reddit confidence gate zeroes buzz for irrelevant posts', () => {
+    const realBuzz: PackageRawData = {
+      ...makePackage({ name: 'real' }),
+      reddit: {
+        totalPosts: 20, totalScore: 5000, highQualityPosts: 15,
+        topTitles: [], subreddits: {},
+        relevantPosts: 20, totalFetched: 20, queriesUsed: 1,
+      },
+    };
+    const fakeBuzz: PackageRawData = {
+      ...makePackage({ name: 'fake' }),
+      reddit: {
+        totalPosts: 0, totalScore: 0, highQualityPosts: 0,
+        topTitles: [], subreddits: {},
+        relevantPosts: 0, totalFetched: 25, queriesUsed: 5,
+      },
+    };
+    const results = scorer.score([realBuzz, fakeBuzz]);
+    const real = results.find((r) => r.name === 'real')!;
+    const fake = results.find((r) => r.name === 'fake')!;
+    expect(real.scores.redditBuzz).toBeGreaterThan(0);
+    expect(fake.scores.redditBuzz).toBe(0);
+  });
+
+  it('high state of js score improves ranking', () => {
+    const highRetention: PackageRawData = { ...makePackage({ name: 'loved' }), stateOfJsRetention: 100 };
+    const lowRetention: PackageRawData = { ...makePackage({ name: 'disliked' }), stateOfJsRetention: 15 };
+    const results = scorer.score([highRetention, lowRetention]);
+    expect(results[0]!.name).toBe('loved');
   });
 
   it('single package scores sensibly (no divide-by-zero)', () => {

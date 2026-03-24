@@ -7,14 +7,15 @@ import {
   OrchestratorResult,
   ProgressEvent,
   ApiError,
-} from './types.js';
-import { SerperClient } from './clients/serper.js';
-import { NpmClient } from './clients/npm.js';
-import { GitHubClient } from './clients/github.js';
-import { RedditClient } from './clients/reddit.js';
-import { LlmClient } from './clients/llm.js';
-import { Scorer } from './scorer.js';
-import { cache } from './cache.js';
+} from '../shared/types.js';
+import { SerperClient } from '../shared/clients/serper.js';
+import { NpmClient } from '../shared/clients/npm.js';
+import { GitHubClient } from '../shared/clients/github.js';
+import { RedditClient } from '../shared/clients/reddit.js';
+import { LlmClient } from '../shared/clients/llm.js';
+import { lookupRetention } from '../shared/clients/stateofjs.js';
+import { Scorer } from '../shared/scorer.js';
+import { cache } from '../shared/cache.js';
 
 export class SearchOrchestrator extends EventEmitter {
   private serper: SerperClient;
@@ -67,11 +68,11 @@ export class SearchOrchestrator extends EventEmitter {
     // ---- Phase 2: Fetch npm + GitHub in parallel ----------
     this.emit('progress', {
       phase: 'npm',
-      message: `Fetching npm data for ${candidates.length} packages...`,
+      message: `Fetching npm + GitHub data for ${candidates.length} packages...`,
       total: candidates.length,
     } as ProgressEvent);
 
-    const limit = pLimit(3); // Max 3 concurrent package fetches
+    const limit = pLimit(3);
     const rawPackages: PackageRawData[] = [];
 
     const fetchTasks = candidates.map((name, i) =>
@@ -83,7 +84,7 @@ export class SearchOrchestrator extends EventEmitter {
           total: candidates.length,
         } as ProgressEvent);
 
-        // npm fetch — fatal per-package if it fails
+        // npm data — skip package entirely if this fails
         let npmData;
         try {
           npmData = await this.npm.getPackage(name);
@@ -92,14 +93,9 @@ export class SearchOrchestrator extends EventEmitter {
           return null;
         }
 
-        // GitHub fetch — non-fatal
+        // GitHub data — non-fatal
         let githubData = null;
         if (options.github) {
-          this.emit('progress', {
-            phase: 'github',
-            message: `GitHub: ${name}`,
-          } as ProgressEvent);
-
           const parsed = GitHubClient.parseRepoUrl(npmData.repositoryUrl);
           if (parsed) {
             try {
@@ -114,7 +110,17 @@ export class SearchOrchestrator extends EventEmitter {
           }
         }
 
-        return { npm: npmData, github: githubData, reddit: null, sentiment: null } as PackageRawData;
+        // State of JS retention — instant static lookup, always runs
+        const stateOfJsEntry = lookupRetention(name);
+        const stateOfJsRetention = stateOfJsEntry?.score ?? null;
+
+        return {
+          npm: npmData,
+          github: githubData,
+          reddit: null,
+          sentiment: null,
+          stateOfJsRetention,
+        } as PackageRawData;
       })
     );
 
@@ -123,16 +129,15 @@ export class SearchOrchestrator extends EventEmitter {
       if (result !== null) rawPackages.push(result);
     }
 
-    // ---- Phase 3: Reddit signals (sequential to respect rate limits) ----
+    // ---- Phase 3: Reddit (sequential, adaptive multi-query) ----
     if (options.reddit && rawPackages.length > 0) {
       this.emit('progress', {
         phase: 'reddit',
-        message: `Searching Reddit for ${rawPackages.length} packages...`,
+        message: `Searching Reddit for ${rawPackages.length} packages (adaptive)...`,
         total: rawPackages.length,
       } as ProgressEvent);
 
       try {
-        // Pre-warm the Reddit token
         await this.reddit.getToken();
         redditTokenValid = true;
 
@@ -146,7 +151,8 @@ export class SearchOrchestrator extends EventEmitter {
           } as ProgressEvent);
 
           try {
-            pkg.reddit = await this.reddit.search(pkg.npm.name);
+            // Pass npm keywords so the adaptive query can pick a topic keyword
+            pkg.reddit = await this.reddit.search(pkg.npm.name, pkg.npm.keywords);
           } catch (err) {
             warnings.push(`Reddit search failed for "${pkg.npm.name}": ${(err as Error).message}`);
           }
@@ -157,51 +163,36 @@ export class SearchOrchestrator extends EventEmitter {
       }
     }
 
-    // ---- Phase 4: LLM sentiment (parallel, max 3) -----------
+    // ---- Phase 4: LLM sentiment (single batched call) ----
     if (options.llm && this.config.openrouterApiKey) {
       this.emit('progress', {
         phase: 'sentiment',
-        message: `Analyzing sentiment for ${rawPackages.length} packages...`,
+        message: `Analyzing community sentiment (batched)...`,
         total: rawPackages.length,
       } as ProgressEvent);
 
-      const sentimentLimit = pLimit(3);
-      await Promise.all(
-        rawPackages.map((pkg, i) =>
-          sentimentLimit(async () => {
-            if (!pkg.reddit || pkg.reddit.topTitles.length === 0) return;
-
-            this.emit('progress', {
-              phase: 'sentiment',
-              message: `Sentiment: ${pkg.npm.name}`,
-              current: i + 1,
-              total: rawPackages.length,
-            } as ProgressEvent);
-
-            try {
-              pkg.sentiment = await this.llm.analyzeSentiment(
-                pkg.npm.name,
-                pkg.reddit.topTitles
-              );
-              if (pkg.sentiment) llmUsed = true;
-            } catch (err) {
-              warnings.push(`Sentiment analysis failed for "${pkg.npm.name}": ${(err as Error).message}`);
-            }
-          })
-        )
-      );
+      try {
+        const sentimentMap = await this.llm.batchAnalyzeSentiment(rawPackages);
+        for (const pkg of rawPackages) {
+          const sentiment = sentimentMap.get(pkg.npm.name);
+          if (sentiment) {
+            pkg.sentiment = sentiment;
+            llmUsed = true;
+          }
+        }
+      } catch (err) {
+        warnings.push(`Batch sentiment analysis failed: ${(err as Error).message}`);
+      }
     }
 
-    // ---- Phase 5: Score all packages ---------------------
+    // ---- Phase 5: Score ----
     const scoredPackages = this.scorer.score(rawPackages);
     const topPackages = scoredPackages.slice(0, options.top);
-
-    // Apply minScore filter if specified
     const filteredPackages = options.minScore !== undefined
       ? topPackages.filter((p) => p.compositeScore >= options.minScore!)
       : topPackages;
 
-    // ---- Phase 6: LLM recommendation --------------------
+    // ---- Phase 6: LLM recommendation ----
     let recommendation: string | null = null;
     if (options.llm && this.config.openrouterApiKey && filteredPackages.length > 0) {
       this.emit('progress', {

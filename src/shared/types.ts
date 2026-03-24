@@ -55,11 +55,14 @@ export interface GitHubData {
 }
 
 export interface RedditData {
-  totalPosts: number;
-  totalScore: number;
-  highQualityPosts: number; // score >= 10
-  topTitles: string[]; // format: "${score}: ${title}"
+  totalPosts: number;       // posts after title-match filtering
+  totalScore: number;       // sum of upvotes for title-matched posts
+  highQualityPosts: number; // score >= 10, title-matched only
+  topTitles: string[];      // format: "${score}: ${title}"
   subreddits: Record<string, number>;
+  relevantPosts: number;    // posts where package name appears in title
+  totalFetched: number;     // total posts fetched before filtering (all queries)
+  queriesUsed: number;      // 1 if base search was enough, up to 5 if expanded
 }
 
 export interface SentimentResult {
@@ -75,6 +78,7 @@ export interface PackageRawData {
   github: GitHubData | null;
   reddit: RedditData | null;
   sentiment: SentimentResult | null;
+  stateOfJsRetention: number | null; // 0-100 score from State of JS survey
 }
 
 // ---- Scorer Output ----------------------------------------
@@ -86,7 +90,7 @@ export interface PackageScores {
   communitySize: number | null;
   issueHealth: number | null;
   redditBuzz: number | null;
-  redditSentiment: number | null;
+  stateOfJs: number | null;
   freshness: number | null;
 }
 
@@ -121,6 +125,9 @@ export interface PackageResult {
     totalPosts: number;
     totalScore: number;
     highQualityPosts: number;
+    relevantPosts: number;
+    totalFetched: number;
+    queriesUsed: number;
     subreddits: Record<string, number>;
     sentiment: 'positive' | 'negative' | 'neutral' | 'mixed' | null;
     sentimentScore: number | null;

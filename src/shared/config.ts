@@ -32,16 +32,7 @@ export function loadConfig(overrides?: Partial<Config>): Config {
   const openrouterModel =
     overrides?.openrouterModel ?? env['OPENROUTER_MODEL'] ?? DEFAULT_OPENROUTER_MODEL;
 
-  if (!openrouterApiKey) {
-    process.stderr.write(
-      'Warning: OPENROUTER_API_KEY not set — LLM sentiment analysis will be skipped\n'
-    );
-  }
-  if (!githubToken) {
-    process.stderr.write(
-      'Warning: GITHUB_TOKEN not set — GitHub API limited to 60 req/hr (unauthenticated)\n'
-    );
-  }
+  // Informational only — not logged here, handled contextually at runtime
 
   return {
     serperApiKey: serperApiKey!,
