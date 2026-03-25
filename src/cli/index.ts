@@ -18,11 +18,11 @@ try {
 const program = new Command();
 
 program
-  .name('npm-picker')
+  .name('depiq')
   .description(
-    'Best-in-class CLI for discovering and comparing npm packages.\n' +
-    'Combines Google search, npm stats, GitHub health, and Reddit community\n' +
-    'sentiment into a composite score to recommend the best package for your use case.'
+    'Discover and compare npm packages using real signals.\n' +
+    'Scores candidates with downloads, GitHub health, Reddit buzz,\n' +
+    'and State of JS retention to recommend the best package for your use case.'
   )
   .version(version, '-V, --version', 'Show version number')
   .exitOverride(); // Throw instead of process.exit() for testability

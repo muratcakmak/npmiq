@@ -1,11 +1,11 @@
 {
-  "name": "npm-package-picker",
+  "name": "depiq",
   "version": "1.0.0",
-  "description": "Best-in-class CLI for discovering and comparing npm packages. Combines Google search, npm stats, GitHub health, and Reddit community sentiment into a composite score.",
+  "description": "CLI and MCP server for discovering and comparing npm packages. Scores candidates using downloads, GitHub health, Reddit signal, and State of JS retention.",
   "type": "module",
   "bin": {
-    "npm-picker": "./bin/run.js",
-    "npm-picker-mcp": "./bin/mcp.js"
+    "depiq": "./bin/run.js",
+    "depiq-mcp": "./bin/mcp.js"
   },
   "main": "./dist/cli/index.js",
   "types": "./dist/cli/index.d.ts",
@@ -28,15 +28,17 @@
     "prepublishOnly": "npm run build"
   },
   "keywords": [
+    "depiq",
     "npm",
     "package",
     "picker",
     "compare",
     "cli",
+    "mcp",
     "agent",
-    "mcp"
+    "dependency"
   ],
-  "author": "",
+  "author": "Oguzhan Cakmak (github.com/muratcakmak)",
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",

@@ -5,7 +5,7 @@ import { loadConfig } from '../shared/config.js';
 import * as tools from './tools.js';
 
 // ============================================================
-// MCP Server — npm-package-picker
+// MCP Server — depiq
 //
 // Exposes 6 tools over stdio transport for any MCP client:
 //   search_packages, get_npm_stats, get_github_stats,
@@ -17,7 +17,7 @@ import * as tools from './tools.js';
 const config = loadConfig();
 
 const server = new McpServer({
-  name: 'npm-package-picker',
+  name: 'depiq',
   version: '1.0.0',
 });
 

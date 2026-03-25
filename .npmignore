@@ -1,0 +1,23 @@
+# Dev/planning docs
+fix_1.md
+
+# Environment files
+.env
+.env.*
+
+# Source
+src/
+
+# Test artifacts
+coverage/
+
+# TypeScript config
+tsconfig*.json
+
+# Linting/formatting
+.eslintrc.json
+.prettierrc
+
+# Git
+.git/
+.gitignore
