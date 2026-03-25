@@ -1,11 +1,11 @@
 {
-  "name": "depiq",
+  "name": "npmiq",
   "version": "1.0.0",
   "description": "CLI and MCP server for discovering and comparing npm packages. Scores candidates using downloads, GitHub health, Reddit signal, and State of JS retention.",
   "type": "module",
   "bin": {
-    "depiq": "./bin/run.js",
-    "depiq-mcp": "./bin/mcp.js"
+    "npmiq": "./bin/run.js",
+    "npmiq-mcp": "./bin/mcp.js"
   },
   "main": "./dist/cli/index.js",
   "types": "./dist/cli/index.d.ts",
@@ -28,7 +28,7 @@
     "prepublishOnly": "npm run build"
   },
   "keywords": [
-    "depiq",
+    "npmiq",
     "npm",
     "package",
     "picker",

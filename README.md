@@ -1,4 +1,4 @@
-# depiq
+# npmiq
 
 Discover and compare npm packages using real signals. Given a natural language query, depiq finds candidates via Google, then scores them using:
 
@@ -15,7 +15,7 @@ Available as a **CLI** (`depiq`) and an **MCP server** (`depiq-mcp`) for AI agen
 ## Installation
 
 ```bash
-npm install -g depiq
+npm install -g npmiq
 ```
 
 ---
@@ -54,19 +54,19 @@ depiq search "<query>"
 
 ```bash
 # Find the best form validation library for React
-depiq search "form validation react"
+npmiq search "form validation react"
 
 # Find HTTP clients for Node.js, return top 3, skip Reddit for speed
-depiq search "http client node" --top 3 --no-reddit
+npmiq search "http client node" --top 3 --no-reddit
 
 # Full analysis with LLM sentiment and verbose score breakdown
-depiq search "state management react" --verbose
+npmiq search "state management react" --verbose
 
 # Machine-readable JSON output
-depiq search "date utilities" --json
+npmiq search "date utilities" --json
 
 # Only show packages scoring above 70
-depiq search "testing framework" --min-score 70
+npmiq search "testing framework" --min-score 70
 ```
 
 ### Options
@@ -96,8 +96,8 @@ Add to your `claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
-    "depiq": {
-      "command": "depiq-mcp",
+    "npmiq": {
+      "command": "npmiq-mcp",
       "env": {
         "SERPER_API_KEY": "your_key",
         "REDDIT_CLIENT_ID": "your_id",

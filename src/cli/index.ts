@@ -18,7 +18,7 @@ try {
 const program = new Command();
 
 program
-  .name('depiq')
+  .name('npmiq')
   .description(
     'Discover and compare npm packages using real signals.\n' +
     'Scores candidates with downloads, GitHub health, Reddit buzz,\n' +
